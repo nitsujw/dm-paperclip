@@ -209,16 +209,17 @@ module Paperclip
 
     def self.included(base)
 
-      base.class_eval <<-RUBY, __FILE__, __LINE__ + 1
-        class_variable_set(:@@attachment_definitions,nil) unless class_variable_defined?(:@@attachment_definitions)
-        def self.attachment_definitions
-          @@attachment_definitions
-        end
+      base.class_inheritable_accessor :attachment_definitions
+     #base.class_eval <<-RUBY, __FILE__, __LINE__ + 1
+     #  class_variable_set(:@@attachment_definitions,nil) unless class_variable_defined?(:@@attachment_definitions)
+     #  def self.attachment_definitions
+     #    @@attachment_definitions
+     #  end
 
-        def self.attachment_definitions=(obj)
-          @@attachment_definitions = obj
-        end
-      RUBY
+     #  def self.attachment_definitions=(obj)
+     #    @@attachment_definitions = obj
+     #  end
+     #RUBY
 
       base.extend Paperclip::ClassMethods
 
@@ -295,7 +296,8 @@ module Paperclip
     def has_attached_file name, options = {}
       include InstanceMethods
 
-      self.attachment_definitions = {} if self.attachment_definitions.nil?
+
+      self.attachment_definitions ||= {} 
       self.attachment_definitions[name] = {:validations => []}.merge(options)
       
       property_options = options.delete_if { |k,v| ![ :public, :protected, :private, :accessor, :reader, :writer ].include?(key) }
@@ -333,9 +335,9 @@ module Paperclip
 
     # Returns the attachment definitions defined by each call to
     # has_attached_file.
-    def attachment_definitions
-      read_inheritable_attribute(:attachment_definitions)
-    end
+   #def attachment_definitions
+   #  read_inheritable_attribute(:attachment_definitions)
+   #end
   end
 
   module InstanceMethods #:nodoc:
