@@ -387,6 +387,7 @@ module Paperclip
         rescue PaperclipError => e
           log("An error was received while processing: #{e.inspect}")
           (@errors[:processing] ||= []) << e.message if @whiny
+          raise
         end
       end
     end
