@@ -52,7 +52,7 @@ module Paperclip
       p command
 
       begin
-        success = Paperclip.run("convert", command.gsub(/\s+/, " "))
+        success = Paperclip.run("convert", command.gsub("\n",""))
       rescue PaperclipCommandLineError
         raise PaperclipError, "There was an error processing the thumbnail for #{@basename}" if @whiny
       end
