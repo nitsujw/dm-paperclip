@@ -61,7 +61,7 @@ module Paperclip
     # into the thumbnail.
     def transformation_command
       scale, crop = @current_geometry.transformation_to(@target_geometry, crop?)
-      trans = "-resize \"#{scale}\" -colorspace RGB"
+      trans = "-resize \"#{scale}\" -density 1000 -colorspace RGB"
       trans << " -crop \"#{crop}\" +repage" if crop
       trans << " #{convert_options}" if convert_options?
       trans
