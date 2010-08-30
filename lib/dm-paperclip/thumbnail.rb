@@ -43,10 +43,13 @@ module Paperclip
       dst.binmode
 
       command = <<-end_command
+        -density 300x300
         "#{ File.expand_path(src.path) }[0]"
         #{ transformation_command }
         "#{ File.expand_path(dst.path) }"
       end_command
+      
+      p command
 
       begin
         success = Paperclip.run("convert", command.gsub(/\s+/, " "))
@@ -61,7 +64,7 @@ module Paperclip
     # into the thumbnail.
     def transformation_command
       scale, crop = @current_geometry.transformation_to(@target_geometry, crop?)
-      trans = "-resize \"#{scale}\" -density 1000 -colorspace RGB"
+      trans = "-resize \"#{scale}\" -colorspace RGB"
       trans << " -crop \"#{crop}\" +repage" if crop
       trans << " #{convert_options}" if convert_options?
       trans
