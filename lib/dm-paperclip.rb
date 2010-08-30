@@ -149,7 +149,8 @@ module Paperclip
     # will only log if logging in general is set to true as well.
     def run cmd, params = "", expected_outcodes = 0
       command = %Q<#{%Q[#{path_for_command(cmd)} #{params}].gsub("\n","")}>
-      command = "#{command} 2>#{bit_bucket}" if Paperclip.options[:swallow_stderr]
+      p command
+      #command = "#{command} 2>#{bit_bucket}" if Paperclip.options[:swallow_stderr]
       Paperclip.log(command) if true
       output = `#{command}`
       unless [expected_outcodes].flatten.include?($?.exitstatus)

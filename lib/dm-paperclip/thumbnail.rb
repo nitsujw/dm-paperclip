@@ -41,6 +41,7 @@ module Paperclip
       src = @file
       dst = Tempfile.new([@basename, @format].compact.join("."))
       dst.binmode
+      p File.exist?(src)
 
       command = <<-end_command
         -density 300x300
@@ -49,13 +50,15 @@ module Paperclip
         "#{ File.expand_path(dst.path) }"
       end_command
       
-      p command
-
       begin
         success = Paperclip.run("convert", command.gsub("\n",""))
       rescue PaperclipCommandLineError
         raise PaperclipError, "There was an error processing the thumbnail for #{@basename}" if @whiny
       end
+
+      @dst = dst
+
+      p File.exist?(@dst)
 
       dst
     end
