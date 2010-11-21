@@ -13,6 +13,7 @@ module Paperclip
       when %r"png", "gif", "bmp"     then "image/#{type}"
       when "txt"                     then "text/plain"
       when %r"html?"                 then "text/html"
+			when %r"mp3", "flac", "ogg"		 then "audio/#{type}"
       when "csv", "xml", "css", "js" then "text/#{type}"
       else "application/x-#{type}"
       end
