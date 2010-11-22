@@ -3,6 +3,7 @@ module Paperclip
   # when the model saves, deletes when the model is destroyed, and processes
   # the file upon assignment.
   class Attachment
+		include IOStream
 
     def self.default_options
       @default_options ||= {
@@ -18,6 +19,8 @@ module Paperclip
     end
 
     attr_reader :name, :instance, :styles, :default_style, :convert_options, :queued_for_write, :options
+
+		attr_accessor :job_is_processing
 
     # Creates an Attachment object. +name+ is the name of the attachment,
     # +instance+ is the ActiveRecord object instance it's attached to, and
@@ -61,7 +64,7 @@ module Paperclip
     # If the file that is assigned is not valid, the processing (i.e.
     # thumbnailing, etc) will NOT be run.
     def assign uploaded_file
-
+			
       ensure_required_accessors!
 
       if uploaded_file.is_a?(Paperclip::Attachment)
@@ -78,14 +81,14 @@ module Paperclip
 
       if uploaded_file.respond_to?(:[])
         uploaded_file = uploaded_file.to_mash
-        
+				
         @queued_for_write[:original]   = uploaded_file['tempfile']
         instance_write(:file_name,       uploaded_file['filename'].strip.gsub(/[^\w\d\.\-]+/, '_'))
         instance_write(:content_type,    uploaded_file['content_type'] ? uploaded_file['content_type'].strip : uploaded_file['tempfile'].content_type.to_s.strip)
         instance_write(:file_size,       uploaded_file['size'] ? uploaded_file['size'].to_i : uploaded_file['tempfile'].size.to_i)
         instance_write(:updated_at,      Time.now)
       else
-        @queued_for_write[:original]   = uploaded_file.tempfile
+        @queued_for_write[:original]   = to_tempfile(uploaded_file)
         instance_write(:file_name,       uploaded_file.original_filename.strip.gsub(/[^\w\d\.\-]+/, '_'))
         instance_write(:content_type,    uploaded_file.content_type.to_s.strip)
         instance_write(:file_size,       uploaded_file.size.to_i)
@@ -94,8 +97,8 @@ module Paperclip
 
       @dirty = true
 
-      post_process if valid?
-
+			request_post_process
+		
       # Reset the file size if the original file was reprocessed.
       instance_write(:file_size, @queued_for_write[:original].size.to_i)
 
@@ -103,6 +106,11 @@ module Paperclip
       uploaded_file.close if close_uploaded_file
       validate
     end
+
+		#Requests the instance to do post processing.  If it is delayed it may not execute immediately.
+		def request_post_process
+			@instance.send(:"#{@name}_post_process") if valid?
+		end
 
     # Returns the public URL of the attachment, with a given style. Note that
     # this does not necessarily need to point to a file that your web server
@@ -234,6 +242,25 @@ module Paperclip
       end
     end
 
+		def url_with_processed style = default_style, include_updated_timestamp = true
+			return url_without_processed style, include_updated_timestamp unless @instance.respond_to?(:column_exists?)
+			return url_without_processed style, include_updated_timestamp if job_is_processing
+
+			if !@instance.column_exists?(:"#{@name}_processing")
+				url_without_processed style, include_updated_timestamp
+			else
+				if !@instance.send(:"#{@name}_processing?")
+					url_without_processed style, include_updated_timestamp
+				else
+					if !@instance.send(:"#{@name}_changed?")
+						url_without_processed style, include_updated_timestamp
+					else
+						interpolate(@default_url, style)
+					end
+				end
+			end
+		end
+
     # Returns true if a file has been assigned.
     def file?
       !original_filename.blank?
@@ -257,6 +284,12 @@ module Paperclip
       cached = self.instance_variable_get("@_#{getter}")
       return cached if cached
       instance.send(getter) if responds || attr.to_s == "file_name"
+    end
+
+    def post_process #:nodoc:
+      return if @queued_for_write[:original].nil?
+      solidify_style_definitions
+      post_process_styles
     end
 
     private
@@ -371,12 +404,6 @@ module Paperclip
       [ style_options, all_options ].compact.join(" ")
     end
 
-    def post_process #:nodoc:
-      return if @queued_for_write[:original].nil?
-      solidify_style_definitions
-      post_process_styles
-    end
-
     def post_process_styles #:nodoc:
       @styles.each do |name, args|
         begin
@@ -411,5 +438,8 @@ module Paperclip
         [message].flatten.each {|m| instance.errors.add(name, m) }
       end
     end
+
+
+#		alias_method_chain :url, :processed
   end
 end
