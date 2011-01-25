@@ -176,7 +176,10 @@ module Paperclip
           @queued_for_write[style]
         else
           key = path(style)
-          file = Tempfile.new(key)
+          extname = File.extname(key)
+          basename = File.basename(key, extname)
+          file = Tempfile.new([basename, extname])
+          file.binmode
 
           s3_download(key,file)
 

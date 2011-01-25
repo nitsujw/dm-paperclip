@@ -354,7 +354,7 @@ module Paperclip
 				return unless self.send(:"#{name}_processing?")
 
 				self.send("#{name}_processing=", false)
-				self.save(:validate => false)
+				self.save!
 			end
 
 			define_method "#{name}_processing!" do
